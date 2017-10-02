@@ -140,7 +140,7 @@ class Choices {
     }
 
     // Create data store
-    this.store = new Store(this.render);
+    this.store = new Store();
 
     // State tracking
     this.initialised = false;
@@ -175,7 +175,8 @@ class Choices {
 
     this.highlightPosition = 0;
     this.canSearch = this.config.searchEnabled;
-
+    this.renderScheduled = 0;
+    
     this.placeholder = false;
     if (!this.isSelectOneElement) {
       this.placeholder = this.config.placeholder ?
@@ -201,7 +202,7 @@ class Choices {
 
     // Bind methods
     this.render = this.render.bind(this);
-
+    this._scheduleRender = this._scheduleRender.bind(this);
     // Bind event handlers
     this._onFocus = this._onFocus.bind(this);
     this._onBlur = this._onBlur.bind(this);
@@ -262,7 +263,7 @@ class Choices {
     // Generate input markup
     this._createInput();
     // Subscribe store to render method
-    this.store.subscribe(this.render);
+    this.store.subscribe(this._scheduleRender);
     // Render any items
     this.render();
     // Trigger event listeners
@@ -318,7 +319,7 @@ class Choices {
 
     // Nullify instance-specific data
     this.config.templates = null;
-
+    this._cancelScheduledRender();
     // Uninitialise
     this.initialised = false;
   }
@@ -479,6 +480,7 @@ class Choices {
    * @private
    */
   render() {
+    this._cancelScheduledRender();
     this.currentState = this.store.getState();
 
     // Only render if our state has actually changed
@@ -573,6 +575,26 @@ class Choices {
       this.prevState = this.currentState;
     }
   }
+  
+  
+   _cancelScheduledRender() {
+     if (this.renderScheduled === 0) {
+       return;
+     }
+     window.cancelAnimationFrame(this.renderScheduled);
+     this.renderScheduled = 0;
+   }
+  
+  _scheduleRender() {
+     // render was already scheduled so aborting
+     if (this.renderScheduled !== 0) {
+       return;
+     }
+     this.renderScheduled = window.requestAnimationFrame(() => {
+       this.renderScheduled = 0;
+       this.render();
+     });
+   }
 
   /**
    * Select item (a selected item can be deleted)
@@ -1922,9 +1944,9 @@ class Choices {
     // If target is something that concerns us
     if (this.containerOuter.contains(target)) {
       // Handle button delete
-      if (target.hasAttribute('data-button')) {
-        this._handleButtonAction(activeItems, target);
-      }
+      // if (target.hasAttribute('data-button')) {
+        //this._handleButtonAction(activeItems, target);
+     // }
 
       if (!hasActiveDropdown) {
         if (this.isTextElement) {
