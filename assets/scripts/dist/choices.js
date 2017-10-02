@@ -206,7 +206,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    // Create data store
-	    this.store = new _index2.default(this.render);
+	    this.store = new _index2.default();
 
 	    // State tracking
 	    this.initialised = false;
@@ -241,7 +241,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    this.highlightPosition = 0;
 	    this.canSearch = this.config.searchEnabled;
-
+      this.renderScheduled = 0;
+      
 	    this.placeholder = false;
 	    if (!this.isSelectOneElement) {
 	      this.placeholder = this.config.placeholder ? this.config.placeholderValue || this.passedElement.getAttribute('placeholder') : false;
@@ -263,7 +264,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    // Bind methods
 	    this.render = this.render.bind(this);
-
+      this._scheduleRender = this._scheduleRender.bind(this);
+      
 	    // Bind event handlers
 	    this._onFocus = this._onFocus.bind(this);
 	    this._onBlur = this._onBlur.bind(this);
@@ -328,7 +330,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      // Generate input markup
 	      this._createInput();
 	      // Subscribe store to render method
-	      this.store.subscribe(this.render);
+	      this.store.subscribe(this._scheduleRender);
 	      // Render any items
 	      this.render();
 	      // Trigger event listeners
@@ -384,7 +386,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      // Nullify instance-specific data
 	      this.config.templates = null;
-
+        this._cancelScheduledRender();
 	      // Uninitialise
 	      this.initialised = false;
 	    }
@@ -398,7 +400,31 @@ return /******/ (function(modules) { // webpackBootstrap
 	     * @private
 	     */
 
-	  }, {
+	  }, 
+                           {key: '_cancelScheduledRender', value: function _cancelScheduledRender() {
+                                if (this.renderScheduled === 0) {
+                                 return;
+                               }
+                               window.cancelAnimationFrame(this.renderScheduled);
+                               this.renderScheduled = 0;
+                           
+                           }},
+                           {
+                           
+                             key: '_scheduleRender',
+                             value: function _scheduleRender() {
+                              if (this.renderScheduled !== 0) {
+                               return;
+                             }
+                             this.renderScheduled = window.requestAnimationFrame(function() {
+                               this.renderScheduled = 0;
+                               this.render();
+                             }.bind(this));
+                             
+                             }
+                           },
+                           
+                           {
 	    key: 'renderGroups',
 	    value: function renderGroups(groups, choices, fragment) {
 	      var _this = this;
@@ -576,6 +602,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }, {
 	    key: 'render',
 	    value: function render() {
+        // cancel any scheduled render
+ +      this._cancelScheduledRender();
 	      this.currentState = this.store.getState();
 
 	      // Only render if our state has actually changed
