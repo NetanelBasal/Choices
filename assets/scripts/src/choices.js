@@ -702,7 +702,8 @@ class Choices {
    * @public
    */
   removeItemsByValue(value) {
-    if (!value || !isType('String', value)) {
+    if (
+      || !isType('String', value)) {
       return this;
     }
 
@@ -1165,7 +1166,7 @@ class Choices {
    * @private
    */
   _triggerChange(value) {
-    if (!value) {
+    if (value === undefined) {
       return;
     }
 
